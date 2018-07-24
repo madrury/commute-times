@@ -39,5 +39,12 @@ def in_third_quad(xy):
 def in_fourth_quad(xy):
     return (xy[:, 0] <= 0) & (xy[:, 1] >= 0)
 
+def in_same_quad(xy0, xy1):
+    return (
+        (in_first_quad(xy0) & in_first_quad(xy1))
+        | (in_second_quad(xy0) & in_second_quad(xy1))
+        | (in_third_quad(xy0) & in_third_quad(xy1))
+        | (in_fourth_quad(xy0) & in_fourth_quad(xy1)))
+
 def in_lower_half_plane(xy):
     return in_second_quad(xy) | in_third_quad(xy)

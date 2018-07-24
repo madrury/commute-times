@@ -3,7 +3,8 @@ import numpy as np
 from commute_times.utils import (
     random_uniform_ellipse, line_segment, sample_gamma,
     compute_raw_distance, make_interval,
-    in_first_quad, in_fourth_quad, in_lower_half_plane
+    in_first_quad, in_second_quad, in_third_quad, in_fourth_quad,
+    in_same_quad, in_lower_half_plane
 )
 from commute_times.config import (
     MORNING_COMMUTE_BEGIN,
@@ -26,6 +27,14 @@ from commute_times.config import (
     FIRST_OR_FOURTH_TO_OTHER_QUAD_FACTOR_MODE,
     FIRST_OR_FOURTH_TO_OTHER_QUAD_FACTOR_SHAPE,
     FIRST_OR_FOURTH_TO_OTHER_QUAD_FACTOR_MINIMUM,
+    SAME_QUADRANT_COMMUTE_TYPES,
+    SAME_QUADRANT_COMMUTE_TYPE_PROBABILITIES,
+    FIRST_TO_SECOND_COMMUTE_TYPES,
+    FIRST_TO_SECOND_COMMUTE_TYPE_PROBABILITIES,
+    FIRST_TO_THIRD_COMMUTE_TYPES,
+    FIRST_TO_THIRD_COMMUTE_TYPE_PROBABILITIES,
+    OTHER_COMMUTE_TYPES,
+    OTHER_COMMUTE_TYPE_PROBABILITIES,
 )
 
 def sample_time_of_day(n):
@@ -55,6 +64,40 @@ def sample_time_of_day(n):
             evening_commute_samples
         ]
     )
+
+def sample_commute_type(sources, targets):
+    N = sources.shape[0]
+    same_quadrant_commute_types = np.random.choice(
+        SAME_QUADRANT_COMMUTE_TYPES,
+        size=N,
+        p=SAME_QUADRANT_COMMUTE_TYPE_PROBABILITIES)
+    first_to_second_commute_types = np.random.choice(
+        FIRST_TO_SECOND_COMMUTE_TYPES,
+        size=N,
+        p=FIRST_TO_SECOND_COMMUTE_TYPE_PROBABILITIES)
+    first_to_third_commute_types = np.random.choice(
+        FIRST_TO_THIRD_COMMUTE_TYPES,
+        size=N,
+        p=FIRST_TO_THIRD_COMMUTE_TYPE_PROBABILITIES)
+    other_commute_types = np.random.choice(
+        OTHER_COMMUTE_TYPES,
+        size=N,
+        p=OTHER_COMMUTE_TYPE_PROBABILITIES)
+    cond_list = [
+        in_same_quad(sources, targets),
+        in_first_quad(sources) & in_second_quad(targets),
+        in_second_quad(sources) & in_first_quad(targets),
+        in_first_quad(sources) & in_third_quad(targets),
+        in_third_quad(sources) & in_first_quad(targets)
+    ]
+    choice_list = [
+        same_quadrant_commute_types,
+        first_to_second_commute_types,
+        first_to_second_commute_types,
+        first_to_third_commute_types,
+        first_to_third_commute_types,
+    ]
+    return np.select(cond_list, choice_list, default=other_commute_types)
 
 def compute_commute_time(sources, targets, time_of_day):
     assert sources.shape == targets.shape
