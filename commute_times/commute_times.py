@@ -173,3 +173,26 @@ def compute_time_of_day_factor(t):
                         EVENING_COMMUTE_END, NIGHTIME_TOD_FACTOR)
     ]
     return np.select(cond_list, choice_list, default=NIGHTIME_TOD_FACTOR)
+
+def compute_commute_type_factor(commute_type):
+    N = commute_type.shape[0]
+    car_factor = 1.0
+    bus_factor = sample_gamma(N, mode=1.0, shape=2.0)
+    train_factor = sample_gamma(N, mode=0.5, shape=10.0)
+    bike_factor = sample_gamma(N, mode=3.0, shape=10.0)
+    walk_factor = sample_gamma(N, mode=5.0, shape=25.0)
+    cond_list = [
+        commute_type == 'CAR',
+        commute_type == 'BUS',
+        commute_type == 'TRAIN',
+        commute_type == 'BIKE',
+        commute_type == 'WALK'
+    ]
+    choice_list = [
+        car_factor,
+        bus_factor,
+        train_factor,
+        bike_factor,
+        walk_factor
+    ]
+    return np.select(cond_list, choice_list, default=1.0)
