@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 from commute_times.utils import (
     random_uniform_ellipse, line_segment, sample_gamma,
@@ -45,6 +46,27 @@ from commute_times.config import (
     WALK_FACTOR_SHAPE,
 )
 
+
+
+class CommuteTimeData:
+
+    def sample(self, n):
+        sources = random_uniform_ellipse(n)
+        targets = random_uniform_ellipse(n)
+        time_of_day = sample_time_of_day(n)
+        commute_type = sample_commute_type(sources, targets)
+        commute_time = sample_commute_time(
+            sources, targets, time_of_day, commute_type)
+        return pd.DataFrame({
+            'source_latitude': sources[:, 0],
+            'source_longitude': sources[:, 1],
+            'destination_latitude': targets[:, 0],
+            'destination_longitude': targets[:, 1],
+            'time_of_day': time_of_day,
+            'commute_type': commute_type,
+            'commute_time': commute_time})
+
+
 def sample_time_of_day(n):
     dead_of_night_samples = np.random.uniform(
         EVENING_COMMUTE_END, 24.0 + MORNING_COMMUTE_BEGIN, size=n) % 24.0
@@ -54,7 +76,7 @@ def sample_time_of_day(n):
         right=MORNING_COMMUTE_END,
         size=n)
     midday_samples = np.random.uniform(
-        MORNING_COMMUTE_END, EVENING_COMMUTE_BEGIN, size=n)
+        MORNING_COMMUTE_END - 0.5, EVENING_COMMUTE_BEGIN + 0.5, size=n)
     evening_commute_samples = np.random.triangular(
         left=EVENING_COMMUTE_BEGIN,
         mode=EVENING_COMMUTE_MID,
@@ -107,7 +129,7 @@ def sample_commute_type(sources, targets):
     ]
     return np.select(cond_list, choice_list, default=other_commute_types)
 
-def compute_commute_time(sources, targets, time_of_day, commute_type):
+def sample_commute_time(sources, targets, time_of_day, commute_type):
     assert sources.shape == targets.shape
     assert sources.shape[1] == 2
     assert time_of_day.shape[0] == sources.shape[0]
