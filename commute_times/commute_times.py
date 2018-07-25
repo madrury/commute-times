@@ -35,6 +35,14 @@ from commute_times.config import (
     FIRST_TO_THIRD_COMMUTE_TYPE_PROBABILITIES,
     OTHER_COMMUTE_TYPES,
     OTHER_COMMUTE_TYPE_PROBABILITIES,
+    BUS_FACTOR_MODE,
+    BUS_FACTOR_SHAPE,
+    TRAIN_FACTOR_MODE,
+    TRAIN_FACTOR_SHAPE,
+    BIKE_FACTOR_MODE,
+    BIKE_FACTOR_SHAPE,
+    WALK_FACTOR_MODE,
+    WALK_FACTOR_SHAPE,
 )
 
 def sample_time_of_day(n):
@@ -105,7 +113,6 @@ def compute_commute_time(sources, targets, time_of_day, commute_type):
     assert time_of_day.shape[0] == sources.shape[0]
     N = sources.shape[0]
     raw_distance = compute_raw_distance(sources, targets)
-    # Scale is chosen so that the mode of the conjestion_factor is one.
     conjestion_factor = compute_conjestion_factor(N)
     geometry_factor = compute_geometry_factor(sources, targets)
     time_of_day_factor = compute_time_of_day_factor(time_of_day)
@@ -179,10 +186,14 @@ def compute_time_of_day_factor(t):
 def compute_commute_type_factor(commute_type):
     N = commute_type.shape[0]
     car_factor = 1.0
-    bus_factor = sample_gamma(N, mode=1.0, shape=5.0)
-    train_factor = sample_gamma(N, mode=0.75, shape=10.0)
-    bike_factor = sample_gamma(N, mode=1.5, shape=10.0)
-    walk_factor = sample_gamma(N, mode=3.0, shape=25.0)
+    bus_factor = sample_gamma(
+        N, mode=BUS_FACTOR_MODE, shape=BUS_FACTOR_SHAPE)
+    train_factor = sample_gamma(
+        N, mode=TRAIN_FACTOR_MODE, shape=TRAIN_FACTOR_SHAPE)
+    bike_factor = sample_gamma(
+        N, mode=BIKE_FACTOR_MODE, shape=BIKE_FACTOR_SHAPE)
+    walk_factor = sample_gamma(
+        N, mode=WALK_FACTOR_MODE, shape=WALK_FACTOR_SHAPE)
     cond_list = [
         commute_type == 'CAR',
         commute_type == 'BUS',
