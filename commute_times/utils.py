@@ -34,7 +34,7 @@ def in_second_quad(xy):
     return (xy[:, 0] >= 0) & (xy[:, 1] <= 0)
 
 def in_third_quad(xy):
-    return (xy[:, 0] >= 0) & (xy[:, 1] <= 0)
+    return (xy[:, 0] <= 0) & (xy[:, 1] <= 0)
 
 def in_fourth_quad(xy):
     return (xy[:, 0] <= 0) & (xy[:, 1] >= 0)
