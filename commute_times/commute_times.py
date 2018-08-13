@@ -8,6 +8,8 @@ from commute_times.utils import (
     in_same_quad, in_lower_half_plane
 )
 from commute_times.config import (
+    RAW_DISTANCE_SLOPE,
+    TIME_OF_DAY_FACTOR_SCALING, 
     MORNING_COMMUTE_BEGIN,
     MORNING_COMMUTE_MID,
     MORNING_COMMUTE_END,
@@ -36,6 +38,7 @@ from commute_times.config import (
     FIRST_TO_THIRD_COMMUTE_TYPE_PROBABILITIES,
     OTHER_COMMUTE_TYPES,
     OTHER_COMMUTE_TYPE_PROBABILITIES,
+    CAR_FACTOR,
     BUS_FACTOR_MODE,
     BUS_FACTOR_SHAPE,
     TRAIN_FACTOR_MODE,
@@ -140,11 +143,12 @@ def sample_commute_time(sources, targets, time_of_day, commute_type):
     time_of_day_factor = compute_time_of_day_factor(time_of_day)
     commute_type_factor = compute_commute_type_factor(commute_type)
     return (
-        conjestion_factor 
-            * geometry_factor 
-            * time_of_day_factor
-            * commute_type_factor
-            * raw_distance)
+        RAW_DISTANCE_SLOPE * raw_distance 
+            - 8.0 * (2 / (1 + np.exp(2.0*raw_distance)**1.5))
+            + TIME_OF_DAY_FACTOR_SCALING * time_of_day_factor
+            # + conjestion_factor 
+            + geometry_factor 
+            + commute_type_factor)
 
 def compute_conjestion_factor(n):
     return np.maximum(sample_gamma(
@@ -207,7 +211,7 @@ def compute_time_of_day_factor(t):
 
 def compute_commute_type_factor(commute_type):
     N = commute_type.shape[0]
-    car_factor = 1.0
+    car_factor = CAR_FACTOR 
     bus_factor = sample_gamma(
         N, mode=BUS_FACTOR_MODE, shape=BUS_FACTOR_SHAPE)
     train_factor = sample_gamma(
