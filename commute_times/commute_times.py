@@ -9,6 +9,9 @@ from commute_times.utils import (
 )
 from commute_times.config import (
     RAW_DISTANCE_SLOPE,
+    RAW_DISTANCE_NONLINEARITY_X_SCALE,
+    RAW_DISTANCE_NONLINEARITY_Y_SCALE,
+    RAW_DISTANCE_NONLINEARITY_POWER,
     TIME_OF_DAY_FACTOR_SCALING, 
     MORNING_COMMUTE_BEGIN,
     MORNING_COMMUTE_MID,
@@ -142,13 +145,16 @@ def sample_commute_time(sources, targets, time_of_day, commute_type):
     geometry_factor = compute_geometry_factor(sources, targets)
     time_of_day_factor = compute_time_of_day_factor(time_of_day)
     commute_type_factor = compute_commute_type_factor(commute_type)
-    return (
+    commute_time_raw = (
         RAW_DISTANCE_SLOPE * raw_distance 
-            - 8.0 * (2 / (1 + np.exp(2.0*raw_distance)**1.5))
+            - RAW_DISTANCE_NONLINEARITY_Y_SCALE * (
+                2 / (1 + np.exp(RAW_DISTANCE_NONLINEARITY_X_SCALE * raw_distance) 
+                         ** RAW_DISTANCE_NONLINEARITY_POWER))
             + TIME_OF_DAY_FACTOR_SCALING * time_of_day_factor
             # + conjestion_factor 
             + geometry_factor 
             + commute_type_factor)
+    return np.maximum(0.0, commute_time_raw) 
 
 def compute_conjestion_factor(n):
     return np.maximum(sample_gamma(
