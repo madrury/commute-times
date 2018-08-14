@@ -60,6 +60,7 @@ class CommuteTimeData:
         sources = random_uniform_ellipse(n)
         targets = random_uniform_ellipse(n)
         time_of_day = sample_time_of_day(n)
+        time_of_day_ts = convert_to_timestamp(time_of_day)
         commute_type = sample_commute_type(sources, targets)
         commute_time = sample_commute_time(
             sources, targets, time_of_day, commute_type)
@@ -68,7 +69,7 @@ class CommuteTimeData:
             'source_longitude': sources[:, 1],
             'destination_latitude': targets[:, 0],
             'destination_longitude': targets[:, 1],
-            'time_of_day': time_of_day,
+            'time_of_day_ts': time_of_day_ts,
             'commute_type': commute_type,
             'commute_time': commute_time})
 
@@ -119,6 +120,18 @@ def sample_time_of_day(n):
             evening_commute_samples
         ]
     )
+
+def convert_to_timestamp(time_of_day, year=2018, month=8, day=12):
+    hour_of_day = np.floor(time_of_day)
+    minute_of_day = np.floor(60*(time_of_day - hour_of_day))
+    time_of_day_ts = pd.to_datetime(pd.DataFrame({
+        'year': 2018,
+        'month': 8,
+        'day': 13,
+        'hour': hour_of_day,
+        'minute': minute_of_day
+    }))
+    return time_of_day_ts
 
 def sample_commute_type(sources, targets):
     N = sources.shape[0]
