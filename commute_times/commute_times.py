@@ -12,7 +12,7 @@ from commute_times.config import (
     RAW_DISTANCE_NONLINEARITY_X_SCALE,
     RAW_DISTANCE_NONLINEARITY_Y_SCALE,
     RAW_DISTANCE_NONLINEARITY_POWER,
-    TIME_OF_DAY_FACTOR_SCALING, 
+    TIME_OF_DAY_FACTOR_SCALING,
     MORNING_COMMUTE_BEGIN,
     MORNING_COMMUTE_MID,
     MORNING_COMMUTE_END,
@@ -73,6 +73,25 @@ class CommuteTimeData:
             'commute_time': commute_time})
 
 
+def sample_commute_time(sources, targets, time_of_day, commute_type):
+    assert sources.shape == targets.shape
+    assert sources.shape[1] == 2
+    assert time_of_day.shape[0] == sources.shape[0]
+    N = sources.shape[0]
+    raw_distance = compute_raw_distance(sources, targets)
+    geometry_factor = compute_geometry_factor(sources, targets)
+    time_of_day_factor = compute_time_of_day_factor(time_of_day)
+    commute_type_factor = compute_commute_type_factor(commute_type)
+    commute_time_raw = (
+        RAW_DISTANCE_SLOPE * raw_distance
+            - RAW_DISTANCE_NONLINEARITY_Y_SCALE * (
+                2 / (1 + np.exp(RAW_DISTANCE_NONLINEARITY_X_SCALE * raw_distance)
+                         ** RAW_DISTANCE_NONLINEARITY_POWER))
+            + TIME_OF_DAY_FACTOR_SCALING * time_of_day_factor
+            + geometry_factor
+            + commute_type_factor)
+    return np.maximum(0.0, commute_time_raw)
+
 def sample_time_of_day(n):
     dead_of_night_samples = np.random.uniform(
         EVENING_COMMUTE_END, 24.0 + MORNING_COMMUTE_BEGIN, size=n) % 24.0
@@ -91,7 +110,7 @@ def sample_time_of_day(n):
     return np.choose(
         np.random.choice(
             len(COMMUTE_TIME_PROBABILITIES),
-            size=n, 
+            size=n,
             p=COMMUTE_TIME_PROBABILITIES),
         [
             dead_of_night_samples,
@@ -135,54 +154,26 @@ def sample_commute_type(sources, targets):
     ]
     return np.select(cond_list, choice_list, default=other_commute_types)
 
-def sample_commute_time(sources, targets, time_of_day, commute_type):
-    assert sources.shape == targets.shape
-    assert sources.shape[1] == 2
-    assert time_of_day.shape[0] == sources.shape[0]
-    N = sources.shape[0]
-    raw_distance = compute_raw_distance(sources, targets)
-    conjestion_factor = compute_conjestion_factor(N)
-    geometry_factor = compute_geometry_factor(sources, targets)
-    time_of_day_factor = compute_time_of_day_factor(time_of_day)
-    commute_type_factor = compute_commute_type_factor(commute_type)
-    commute_time_raw = (
-        RAW_DISTANCE_SLOPE * raw_distance 
-            - RAW_DISTANCE_NONLINEARITY_Y_SCALE * (
-                2 / (1 + np.exp(RAW_DISTANCE_NONLINEARITY_X_SCALE * raw_distance) 
-                         ** RAW_DISTANCE_NONLINEARITY_POWER))
-            + TIME_OF_DAY_FACTOR_SCALING * time_of_day_factor
-            # + conjestion_factor 
-            + geometry_factor 
-            + commute_type_factor)
-    return np.maximum(0.0, commute_time_raw) 
-
-def compute_conjestion_factor(n):
-    return np.maximum(sample_gamma(
-        n=n, 
-        mode=CONJESTION_FACTOR_MODE, 
-        shape=CONJESTION_FACTOR_SHAPE), 
-    CONJESTION_FACTOR_MINIMUM)
-
 def compute_geometry_factor(sources, targets):
     N = sources.shape[0]
     first_to_fourth_quad_factor = np.maximum(
         sample_gamma(
-            n=N, 
+            n=N,
             mode=FIRST_TO_FOURTH_QUAD_FACTOR_MODE,
-            shape=FIRST_TO_FOURTH_QUAD_FACTOR_SHAPE), 
+            shape=FIRST_TO_FOURTH_QUAD_FACTOR_SHAPE),
         FIRST_TO_FOURTH_QUAD_FACTOR_MINIMUM)
     first_or_fourth_to_bottom_half_factor = np.maximum(
         sample_gamma(
-            n=N, 
+            n=N,
             mode=FIRST_OR_FOURTH_TO_OTHER_QUAD_FACTOR_MODE,
             shape=FIRST_OR_FOURTH_TO_OTHER_QUAD_FACTOR_SHAPE),
         FIRST_OR_FOURTH_TO_OTHER_QUAD_FACTOR_MINIMUM)
     cond_list = [
         in_first_quad(sources) & in_fourth_quad(targets),
         in_fourth_quad(sources) & in_first_quad(targets),
-        (in_first_quad(sources) | in_fourth_quad(sources)) 
+        (in_first_quad(sources) | in_fourth_quad(sources))
             & in_lower_half_plane(targets),
-        (in_first_quad(targets) | in_fourth_quad(targets)) 
+        (in_first_quad(targets) | in_fourth_quad(targets))
             & in_lower_half_plane(sources),
     ]
     choice_list = [
@@ -203,9 +194,9 @@ def compute_time_of_day_factor(t):
         make_interval(t, EVENING_COMMUTE_MID, EVENING_COMMUTE_END)
     ]
     choice_list = [
-        line_segment(t, MORNING_COMMUTE_BEGIN, NIGHTIME_TOD_FACTOR, 
+        line_segment(t, MORNING_COMMUTE_BEGIN, NIGHTIME_TOD_FACTOR,
                         MORNING_COMMUTE_MID, MORNING_PEAK_TOD_FACTOR),
-        line_segment(t, MORNING_COMMUTE_MID, MORNING_PEAK_TOD_FACTOR, 
+        line_segment(t, MORNING_COMMUTE_MID, MORNING_PEAK_TOD_FACTOR,
                         MORNING_COMMUTE_END, MIDDAY_TOD_FACTOR),
         MIDDAY_TOD_FACTOR,
         line_segment(t, EVENING_COMMUTE_BEGIN, MIDDAY_TOD_FACTOR,
@@ -217,7 +208,7 @@ def compute_time_of_day_factor(t):
 
 def compute_commute_type_factor(commute_type):
     N = commute_type.shape[0]
-    car_factor = CAR_FACTOR 
+    car_factor = CAR_FACTOR
     bus_factor = sample_gamma(
         N, mode=BUS_FACTOR_MODE, shape=BUS_FACTOR_SHAPE)
     train_factor = sample_gamma(
