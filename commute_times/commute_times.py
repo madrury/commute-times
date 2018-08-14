@@ -53,9 +53,40 @@ from commute_times.config import (
 )
 
 
-
 class CommuteTimeData:
+    """A generator for a simulated data set of commute times.  These commute
+    times are all trips in a fictional city from some source to some
+    destination.  Various qualities of the commute affect the final commute
+    time.
 
+    Usage
+    -----
+    commute_data = CommuteTimeData().sample(n_samples)
+
+    Fields
+    ------
+    source_latitude: float
+      The latitude of the source of the commute.
+
+    source_longitude: float
+      The longitude of the source of the commute.
+
+    destination_latitude: float
+      The latitude of the destination of the commute.
+
+    destination_longitude: float
+      The longitude of the destination of the commute.
+
+    time_of_day_ts: datetime
+      The time of day that the commute began.
+
+    commute_type: string
+      The transportation method of the commute.  Options include CAR, BUS,
+      TRAIN, BIKE, and WALK.
+
+    commute_time: float
+      The total time taken by the commute.
+    """
     def sample(self, n):
         sources = random_uniform_ellipse(n)
         targets = random_uniform_ellipse(n)
@@ -75,6 +106,39 @@ class CommuteTimeData:
 
 
 def sample_commute_time(sources, targets, time_of_day, commute_type):
+    """Sample a commute time given some data about the commute.
+
+    The commute time is constructed as a sum of a few random and non-random
+    factors:
+
+      - The L1 (taxicab) distance between the source and the target.  There is
+        a slight non-linearity of this dependence, but a linear approximation
+        is pretty good.
+      - A summand depending of geometry of the commute.  For this purpose, the
+        geometry is a function of what quadrants of the city the commute is
+        occuring between.
+      - The time of day for the commute.  The commute time has a non-linear
+        dependence on the time of day.  Commute are longer during the high
+        traffic time of day.
+      - The transporation method of the commute (commute_type).  This is pretty
+        straightforward, each different type of commute adds (on average) a
+        different constant to the commute time (note, this is physically
+        unrealistic, this factor surely should be multiplicitive!)
+
+    Parameters
+    ----------
+    sources: np.array of float, shape (n_samples, 2)
+      The latitude, longitude pairs for the sources of the commutes.
+
+    targets: np.array of float, shape (n_samples, 2)
+      The latitude, longitude pairs for the targetss of the commutes.
+
+    time_of_day: np.array of float, shape (n_samples,)
+      The time of day as a float in the range [0, 24).
+
+    commute_type: np.array of string, shape (n_samples,)
+      The transportation method of the commute.
+    """
     assert sources.shape == targets.shape
     assert sources.shape[1] == 2
     assert time_of_day.shape[0] == sources.shape[0]
